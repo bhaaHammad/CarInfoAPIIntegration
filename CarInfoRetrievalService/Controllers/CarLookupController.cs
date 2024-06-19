@@ -8,18 +8,26 @@ namespace CarInfoRetrievalService.Controllers
     public class CarLookupController : ControllerBase
     {
         private readonly CarMakeIdentifierService _carMakeIdentifierService;
+        private readonly CarDataApiService _carDataApiService;
 
-        public CarLookupController(CarMakeIdentifierService carMakeServiCarMakeIdentifierService)
+        public CarLookupController(CarMakeIdentifierService carMakeServiCarMakeIdentifierService,
+                                   CarDataApiService carDataApiService)
         {
             _carMakeIdentifierService = carMakeServiCarMakeIdentifierService;
+            _carDataApiService = carDataApiService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetCarModelsByMakeAndYear([FromQuery] string make,
-                                                                   [FromQuery] int modelYear)
+        public IActionResult GetCarModelsByMakeAndYear([FromQuery] string make,
+                                                       [FromQuery] int modelYear)
         {
             var makeId = _carMakeIdentifierService.FindMakeIdByMakeName(make);
-            return Ok(makeId);
+            if (makeId != null)
+            {
+                _carDataApiService.GetModelsForMakeIdWithYear(makeId, modelYear);
+                return Ok("Success");
+            }
+            return BadRequest("makeId is null");
         }
     }
 }

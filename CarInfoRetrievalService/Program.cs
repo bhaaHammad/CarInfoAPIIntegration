@@ -3,6 +3,7 @@ using CarInfoRetrievalService.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<CarMakeIdentifierService>();
+builder.Services.AddHttpClient<CarDataApiService>();
 
 // Add services to the container.
 
