@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CarInfoRetrievalService.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/models")]
     [ApiController]
     public class CarLookupController : ControllerBase
     {
@@ -18,16 +18,27 @@ namespace CarInfoRetrievalService.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetCarModelsByMakeAndYear([FromQuery] string make,
-                                                       [FromQuery] int modelYear)
+        public async Task<IActionResult> GetCarModelsByMakeAndYear([FromQuery] int modelYear,
+                                                                   [FromQuery] string make)
         {
-            var makeId = _carMakeIdentifierService.FindMakeIdByMakeName(make);
-            if (makeId != null)
+            if (string.IsNullOrEmpty(make) || modelYear <= 0)
             {
-                _carDataApiService.GetModelsForMakeIdWithYear(makeId, modelYear);
-                return Ok("Success");
+                return BadRequest(string.IsNullOrEmpty(make) ? "Missing required parameter: make" : "Invalid model year. Please enter a positive value.");
             }
-            return BadRequest("makeId is null");
+            try
+            {
+                var makeId = _carMakeIdentifierService.FindMakeIdByMakeName(make);
+                if (makeId != null)
+                {
+                    var carsInformation = await _carDataApiService.GetCarModelsByMakeAndYear(makeId, modelYear);
+                    return Ok(carsInformation);
+                }
+                return NotFound("Car make not found.");
+            }
+            catch (HttpRequestException ex)
+            {
+                return StatusCode(500, $"Error retrieving car models: {ex.Message}");
+            }
         }
     }
 }

@@ -1,33 +1,25 @@
-﻿using System.Diagnostics;
-
-namespace CarInfoRetrievalService.Services
+﻿namespace CarInfoRetrievalService.Services
 {
     public class CarDataApiService
     {
         private readonly HttpClient _httpClient;
+        private const string ApiBaseUrl = "https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMakeIdYear";
+
 
         public CarDataApiService(HttpClient httpClient)
         {
             _httpClient = httpClient;
         }
-        public void GetModelsForMakeIdWithYear(string makeId, int year)
+        public async Task<string> GetCarModelsByMakeAndYear(string makeId, int year)
         {
-            try
-            {
-                string chromePath = @"C:\Program Files\Google\Chrome\Application\chrome.exe";
-                string url = $"https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMakeIdYear/makeId/{makeId}/modelyear/{year}?format=json";
+            string url = $"{ApiBaseUrl}/makeId/{makeId}/modelyear/{year}?format=json";
 
-                ProcessStartInfo startInfo = new ProcessStartInfo
-                {
-                    UseShellExecute = true,
-                    FileName = chromePath,
-                    Arguments = url
-                };
-                Process.Start(startInfo);
-            }
-            catch (Exception ex)
+            using (var httpClient = new HttpClient())
             {
-                throw new Exception(ex.Message);
+                var response = await httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+                string jsonString = await response.Content.ReadAsStringAsync();
+                return jsonString;
             }
         }
     }
