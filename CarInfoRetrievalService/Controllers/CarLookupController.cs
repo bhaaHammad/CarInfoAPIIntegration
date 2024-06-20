@@ -1,5 +1,6 @@
 ﻿using CarInfoRetrievalService.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace CarInfoRetrievalService.Controllers
 {
@@ -9,6 +10,7 @@ namespace CarInfoRetrievalService.Controllers
     {
         private readonly CarMakeIdentifierService _carMakeIdentifierService;
         private readonly CarDataApiService _carDataApiService;
+        private int currentYear = DateTime.Now.Year;
 
         public CarLookupController(CarMakeIdentifierService carMakeServiCarMakeIdentifierService,
                                    CarDataApiService carDataApiService)
@@ -16,29 +18,22 @@ namespace CarInfoRetrievalService.Controllers
             _carMakeIdentifierService = carMakeServiCarMakeIdentifierService;
             _carDataApiService = carDataApiService;
         }
-
         [HttpGet]
-        public async Task<IActionResult> GetCarModelsByMakeAndYear([FromQuery] int modelYear,
-                                                                   [FromQuery] string make)
+        public async Task<IActionResult> GetCarModelsByMakeAndYear([FromQuery][Required][Range(1, int.MaxValue, ErrorMessage = "The value must be greater than zero.")] int modelYear,
+                                                                   [FromQuery][Required] string make)
         {
-            if (string.IsNullOrEmpty(make) || modelYear <= 0)
+            if(modelYear > currentYear) 
             {
-                return BadRequest(string.IsNullOrEmpty(make) ? "Missing required parameter: make" : "Invalid model year. Please enter a positive value.");
+                ModelState.AddModelError("modelYear", "The model year must be less than or equal to the current year.");
+                return BadRequest(ModelState);
             }
-            try
+            var makeId = _carMakeIdentifierService.FindMakeIdByMakeName(make);
+            if (makeId != null)
             {
-                var makeId = _carMakeIdentifierService.FindMakeIdByMakeName(make);
-                if (makeId != null)
-                {
-                    var carsInformation = await _carDataApiService.GetCarModelsByMakeAndYear(makeId, modelYear);
-                    return Ok(carsInformation);
-                }
-                return NotFound("Car make not found.");
+                var carsInformation = await _carDataApiService.GetCarModelsByMakeAndYear(makeId, modelYear);
+                return Ok(carsInformation);
             }
-            catch (HttpRequestException ex)
-            {
-                return StatusCode(500, $"Error retrieving car models: {ex.Message}");
-            }
+            return NotFound("Car make not found.");
         }
     }
 }
